@@ -1,30 +1,44 @@
 const express = require('express');
-const axios = require('axios');
 const cors = require('cors');
 require('dotenv').config();
+const sweetbookService = require('./services/sweetbook');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 스위트북 API 연동 라우트
+// 1. 판형 목록 조회
+app.get('/api/book-specs', async (req, res) => {
+  try {
+    const specs = await sweetbookService.getBookSpecs();
+    res.json(specs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 2. 전체 자동 생성 워크플로우 실행
+app.post('/api/books/auto-generate', async (req, res) => {
+  try {
+    const { title, episodes } = req.body;
+    const result = await sweetbookService.createFullMilitaryDiary({ title, episodes });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to generate military diary book',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// 3. 기존 개별 API 연동 (단순 프록시 예시)
 app.post('/api/books', async (req, res) => {
   try {
-    const { title, template_id, pages } = req.body;
-    const response = await axios.post('https://api.sweetbook.com/v1/books', {
-      title,
-      template_id,
-      pages
-    }, {
-      headers: {
-        'Authorization': `Bearer ${process.env.SWEETBOOK_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    res.json(response.data);
+    const { title, bookSpecUid } = req.body;
+    const result = await sweetbookService.createBook(title, bookSpecUid || 'PHOTOBOOK_A4_SC');
+    res.json(result);
   } catch (error) {
-    console.error('Sweetbook API Error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to create book' });
+    res.status(500).json({ error: error.message });
   }
 });
 

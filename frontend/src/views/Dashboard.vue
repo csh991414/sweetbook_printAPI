@@ -63,17 +63,20 @@ const episodes = MILITARY_EPISODES;
 
 const createBook = async () => {
   try {
-    const response = await fetch('http://localhost:4000/api/books', {
+    const response = await fetch('http://localhost:4000/api/books/auto-generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: '나의 병영일기',
-        template_id: 'default_template',
-        pages: episodes.map(e => ({ title: e.title, content: e.content }))
+        title: '나의 병영일기: 소나기 리부트',
+        episodes: episodes
       })
     });
     const data = await response.json();
-    alert('책 생성 요청 완료: ' + (data.id || '성공'));
+    if (data.success) {
+      alert(`책 제작이 완료되었습니다!\nBook UID: ${data.data.bookUid}\n페이지 수: ${data.data.pageCount}`);
+    } else {
+      alert('제작 실패: ' + (data.message || '알 수 없는 오류'));
+    }
   } catch (err) {
     alert('에러 발생: ' + err.message);
   }
