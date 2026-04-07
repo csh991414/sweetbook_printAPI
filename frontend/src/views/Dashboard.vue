@@ -1,143 +1,140 @@
 <template>
-  <div class="min-h-screen bg-[#faf9f6] font-sans text-gray-900">
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-100 py-4 px-8 sticky top-0 z-[100] shadow-sm flex justify-between items-center">
-      <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 bg-[#4B5320] rounded flex items-center justify-center text-white shadow-md">
-          <span class="text-lg">🎖️</span>
-        </div>
-        <h1 class="text-lg font-black tracking-tight">SONAGI <span class="text-[#4B5320]">REBOOT</span></h1>
-      </div>
+  <div class="h-screen flex flex-col bg-white overflow-hidden font-sans text-gray-900">
+    <!-- Top Nav -->
+    <nav class="h-16 px-8 flex items-center justify-between border-b border-gray-100 bg-white z-[100]">
       <div class="flex items-center space-x-4">
+        <div class="w-10 h-10 bg-indigo-950 rounded-lg flex items-center justify-center text-white shadow-lg">
+          <span class="text-xl">🎖️</span>
+        </div>
+        <div>
+          <h1 class="text-lg font-black tracking-tighter text-indigo-950 uppercase leading-none">Sonagi Reboot</h1>
+          <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">Digital Archive System</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-6">
+        <button @click="isDrawerOpen = true" class="text-sm font-bold text-gray-600 hover:text-indigo-900 transition-colors">새 기록 추가</button>
         <button 
           @click="createBook"
-          :disabled="isCreating || sortedEpisodes.length === 0"
-          class="px-6 py-2 bg-[#4B5320] text-white text-xs font-black rounded-full hover:bg-[#3f4627] transition-all shadow-lg disabled:opacity-30 uppercase tracking-widest"
+          :disabled="isCreating || episodes.length === 0"
+          class="px-6 py-2.5 bg-[#4B5320] text-white text-xs font-black rounded-full shadow-lg shadow-olive-900/20 hover:bg-[#3f4627] transition-all disabled:opacity-30 uppercase tracking-widest"
         >
-          {{ isCreating ? 'Processing...' : 'Export Digital Book' }}
+          {{ isCreating ? '제작 중...' : '디지털 북 제작' }}
         </button>
       </div>
-    </header>
+    </nav>
 
-    <main class="max-w-[1400px] mx-auto grid md:grid-cols-2 min-h-[calc(100vh-65px)]">
-      <!-- Left: Sticky Book Viewer -->
-      <section class="bg-[#f2f1ed] p-12 flex flex-col items-center border-r border-gray-200/50">
-        <div class="sticky top-20 w-full flex flex-col items-center">
-          <div class="mb-10 text-center">
-            <h2 class="text-2xl font-serif font-black text-gray-800">Preview Archive</h2>
-            <p class="text-xs text-gray-400 font-bold uppercase tracking-[0.2em] mt-2">Interact with your digital diary</p>
+    <!-- Main Content (Book Area) -->
+    <main class="flex-grow bg-[#F7F3E8] relative flex items-center justify-center overflow-hidden">
+      <div class="w-full h-full max-w-6xl mx-auto flex items-center justify-center">
+        <BookViewer 
+          :episodes="sortedEpisodes" 
+          :coverTitle="coverTitle" 
+          :currentPage="currentPageIndex"
+          @next="nextPage"
+          @prev="prevPage"
+        />
+      </div>
+
+      <!-- Side Drawer (Input Form) -->
+      <Transition name="slide">
+        <div v-if="isDrawerOpen" class="absolute inset-y-0 right-0 w-[450px] bg-white shadow-2xl z-[200] border-l border-gray-100 flex flex-col">
+          <div class="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+            <h2 class="text-xl font-black text-indigo-950 uppercase tracking-tight">Add New Memory</h2>
+            <button @click="isDrawerOpen = false" class="p-2 hover:bg-white rounded-full transition-all text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
           
-          <div class="book-container scale-90 lg:scale-100 transition-transform duration-500">
-            <div v-if="sortedEpisodes.length === 0" class="empty-state-card w-[420px] h-[580px] bg-white rounded-lg shadow-2xl flex flex-col items-center justify-center border border-gray-100">
-              <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-                <span class="text-4xl opacity-20">📖</span>
-              </div>
-              <p class="text-sm font-black text-gray-300 uppercase tracking-widest">No entries recorded</p>
-              <p class="text-xs text-gray-400 mt-2">Start adding moments on the right</p>
+          <div class="p-8 flex-grow overflow-y-auto space-y-8">
+            <div class="space-y-4">
+              <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Diary Title</label>
+              <input v-model="coverTitle" class="drawer-input" placeholder="Title on the cover" />
             </div>
-            <BookViewer v-else :episodes="sortedEpisodes" :coverTitle="coverTitle" />
+
+            <div class="grid grid-cols-2 gap-6">
+              <div class="space-y-4">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</label>
+                <input v-model="newEpisode.date" type="date" class="drawer-input" />
+              </div>
+              <div class="space-y-4">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</label>
+                <select v-model="newEpisode.tag" class="drawer-input">
+                  <option value="훈련">🎖️ Training</option>
+                  <option value="진급">🚀 Promotion</option>
+                  <option value="휴가">🏖️ Vacation</option>
+                  <option value="외출">🍕 Outing</option>
+                  <option value="자대">🏠 Unit Life</option>
+                  <option value="기타">✨ Others</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subject</label>
+              <input v-model="newEpisode.title" class="drawer-input" placeholder="Event name" />
+            </div>
+
+            <div class="space-y-4">
+              <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Photo URL</label>
+              <input v-model="newEpisode.image" class="drawer-input" placeholder="https://..." />
+            </div>
+
+            <div class="space-y-4">
+              <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>
+              <textarea v-model="newEpisode.content" rows="6" class="drawer-input resize-none" placeholder="Details..."></textarea>
+            </div>
+          </div>
+
+          <div class="p-8 bg-gray-50/50 border-t border-gray-100">
+            <button @click="addEpisode" class="w-full py-4 bg-[#4B5320] text-white rounded-xl font-black text-sm uppercase tracking-[0.2em] shadow-lg hover:bg-[#3f4627] active:scale-95 transition-all">
+              Save Memory
+            </button>
           </div>
         </div>
-      </section>
-
-      <!-- Right: Scrollable Content & Form -->
-      <section class="p-12 overflow-y-auto">
-        <div class="max-w-xl mx-auto space-y-12">
-          <!-- Form Section -->
-          <div class="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8 overflow-hidden relative">
-            <div class="absolute top-0 left-0 w-1 h-full bg-[#4B5320]"></div>
-            <h3 class="text-xl font-black text-gray-900 mb-6 flex items-center">
-              <span class="mr-3">✍️</span> New Record
-            </h3>
-            
-            <div class="grid gap-6">
-              <div class="space-y-4 pb-6 border-b border-gray-50">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Archive Title</label>
-                <input v-model="coverTitle" class="form-input" placeholder="Title of your diary" />
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Event Date</label>
-                  <input v-model="newEpisode.date" type="date" class="form-input" />
-                </div>
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Category</label>
-                  <select v-model="newEpisode.tag" class="form-input bg-gray-50/50">
-                    <option value="훈련">🎖️ Training</option>
-                    <option value="진급">🚀 Promotion</option>
-                    <option value="휴가">🏖️ Vacation</option>
-                    <option value="외출">🍕 Outing</option>
-                    <option value="자대">🏠 Unit Life</option>
-                    <option value="기타">✨ Miscellaneous</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="space-y-2">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Subject</label>
-                <input v-model="newEpisode.title" class="form-input" placeholder="What happened?" />
-              </div>
-
-              <div class="space-y-2">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Photo Reference (URL)</label>
-                <input v-model="newEpisode.image" class="form-input" placeholder="https://image-link.com" />
-              </div>
-
-              <div class="space-y-2">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block ml-1">Description</label>
-                <textarea v-model="newEpisode.content" rows="4" class="form-input resize-none" placeholder="Write your memory here..."></textarea>
-              </div>
-
-              <button 
-                @click="addEpisode"
-                class="w-full py-4 bg-[#4B5320] text-white rounded-xl font-black text-sm hover:bg-[#3f4627] transition-all shadow-lg active:scale-[0.98] uppercase tracking-[0.2em] mt-2"
-              >
-                Add to Timeline
-              </button>
-            </div>
-          </div>
-
-          <!-- Timeline Section -->
-          <div class="space-y-6">
-            <div class="flex justify-between items-end border-b border-gray-100 pb-4">
-              <h3 class="text-xl font-black text-gray-900">Timeline <span class="text-gray-300 font-serif font-normal italic ml-2">({{ sortedEpisodes.length }})</span></h3>
-              <button v-if="episodes.length > 0" @click="episodes = []" class="text-[10px] font-black text-red-400 hover:text-red-600 uppercase tracking-widest">Reset All</button>
-            </div>
-
-            <div v-if="sortedEpisodes.length === 0" class="py-20 text-center">
-              <p class="text-sm font-bold text-gray-300 uppercase tracking-widest italic">No memories recorded yet</p>
-            </div>
-
-            <div v-else class="space-y-4">
-              <div 
-                v-for="episode in sortedEpisodes" 
-                :key="episode.id"
-                class="group flex items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300"
-              >
-                <div class="w-14 h-14 rounded-lg overflow-hidden bg-gray-50 flex-shrink-0 border border-gray-100 relative">
-                  <img v-if="episode.image" :src="episode.image" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
-                  <div v-else class="w-full h-full flex items-center justify-center text-lg opacity-20">🖼️</div>
-                </div>
-                <div class="ml-4 flex-grow">
-                  <div class="flex items-center space-x-2 mb-0.5">
-                    <span class="text-[9px] font-black uppercase text-[#4B5320] tracking-tighter">{{ episode.tag }}</span>
-                    <span class="text-[9px] text-gray-400 font-mono">{{ episode.date }}</span>
-                  </div>
-                  <h4 class="font-bold text-gray-900 text-sm">{{ episode.title }}</h4>
-                </div>
-                <button @click="removeEpisode(episode.id)" class="ml-4 p-2 text-gray-200 hover:text-red-400 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      </Transition>
     </main>
+
+    <!-- Bottom Thumbnail Carousel -->
+    <footer class="h-44 bg-white border-t border-gray-100 px-8 flex items-center overflow-x-auto overflow-y-hidden space-x-4 scrollbar-hide">
+      <!-- Cover Thumbnail -->
+      <div 
+        @click="currentPageIndex = 0"
+        class="flex-shrink-0 cursor-pointer transition-all duration-300 transform"
+        :class="[currentPageIndex === 0 ? 'scale-110 -translate-y-2' : 'hover:scale-105']"
+      >
+        <div class="w-24 h-32 bg-indigo-950 rounded border-2 shadow-sm flex flex-col items-center justify-center p-2 text-center"
+             :class="[currentPageIndex === 0 ? 'border-yellow-500 shadow-xl' : 'border-gray-100']">
+          <span class="text-[8px] font-black text-white/40 uppercase mb-2">Cover</span>
+          <span class="text-[9px] font-bold text-white line-clamp-2 leading-tight">{{ coverTitle }}</span>
+          <div class="mt-2 text-yellow-500 text-[8px]">★</div>
+        </div>
+      </div>
+
+      <!-- Episode Thumbnails -->
+      <div 
+        v-for="(episode, index) in sortedEpisodes" 
+        :key="episode.id"
+        @click="currentPageIndex = index + 1"
+        class="flex-shrink-0 cursor-pointer transition-all duration-300 transform"
+        :class="[currentPageIndex === index + 1 ? 'scale-110 -translate-y-2' : 'hover:scale-105']"
+      >
+        <div class="w-24 h-32 bg-white rounded border-2 shadow-sm flex flex-col overflow-hidden"
+             :class="[currentPageIndex === index + 1 ? 'border-yellow-500 shadow-xl' : 'border-gray-100']">
+          <div class="h-16 bg-gray-100 w-full overflow-hidden">
+            <img v-if="episode.image" :src="episode.image" class="w-full h-full object-cover" />
+            <div v-else class="w-full h-full flex items-center justify-center opacity-20 text-xs">🖼️</div>
+          </div>
+          <div class="p-2 flex flex-col flex-grow">
+            <span class="text-[7px] font-black text-indigo-900 uppercase tracking-tighter mb-0.5">{{ episode.tag }}</span>
+            <span class="text-[8px] font-bold text-gray-800 line-clamp-2 leading-tight">{{ episode.title }}</span>
+            <span class="mt-auto text-[6px] font-mono text-gray-300">{{ episode.date }}</span>
+          </div>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -147,8 +144,10 @@ import { MILITARY_EPISODES } from '../constants/data';
 import BookViewer from '../components/BookViewer.vue';
 
 const episodes = ref([...MILITARY_EPISODES]);
+const coverTitle = ref('The Soldier\'s Path');
+const isDrawerOpen = ref(false);
 const isCreating = ref(false);
-const coverTitle = ref('My Military Archive');
+const currentPageIndex = ref(0);
 
 const newEpisode = ref({
   date: new Date().toISOString().split('T')[0],
@@ -163,23 +162,15 @@ const sortedEpisodes = computed(() => {
 });
 
 const addEpisode = () => {
-  if (!newEpisode.value.title || !newEpisode.value.date) {
-    alert('Please enter both date and title.');
-    return;
-  }
+  if (!newEpisode.value.title || !newEpisode.value.date) return alert('Date and Subject are required.');
   episodes.value.push({ id: Date.now(), ...newEpisode.value });
-  newEpisode.value = {
-    date: new Date().toISOString().split('T')[0],
-    tag: '기타',
-    title: '',
-    content: '',
-    image: ''
-  };
+  newEpisode.value = { date: new Date().toISOString().split('T')[0], tag: '기타', title: '', content: '', image: '' };
+  isDrawerOpen.value = false;
+  currentPageIndex.value = sortedEpisodes.value.length;
 };
 
-const removeEpisode = (id) => {
-  episodes.value = episodes.value.filter(e => e.id !== id);
-};
+const nextPage = () => { if (currentPageIndex.value < episodes.value.length) currentPageIndex.value++; };
+const prevPage = () => { if (currentPageIndex.value > 0) currentPageIndex.value--; };
 
 const createBook = async () => {
   isCreating.value = true;
@@ -189,12 +180,10 @@ const createBook = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: coverTitle.value, episodes: episodes.value })
     });
-    if (!response.ok) throw new Error('Failed to reach backend.');
     const data = await response.json();
-    if (data.bookUid) alert(`Success! Book UID: ${data.bookUid}`);
-    else alert('Creation failed: ' + (data.message || 'Unknown error'));
+    if (data.bookUid) alert('Successfully Created!');
   } catch (err) {
-    alert('Error: ' + err.message);
+    alert('Error connecting to server.');
   } finally {
     isCreating.value = false;
   }
@@ -202,25 +191,20 @@ const createBook = async () => {
 </script>
 
 <style scoped>
-.form-input {
-  @apply w-full px-4 py-3 border border-gray-100 rounded-lg bg-gray-50/30 focus:bg-white focus:ring-2 focus:ring-[#4B5320]/10 focus:border-[#4B5320] outline-none transition-all text-sm font-medium placeholder:text-gray-300;
+.drawer-input {
+  @apply w-full px-5 py-3.5 border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-900/5 focus:border-indigo-950 outline-none transition-all text-sm font-medium placeholder:text-gray-300;
 }
 
-.book-container {
-  perspective: 2500px;
-}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+.slide-enter-active, .slide-leave-active { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.slide-enter-from, .slide-leave-to { transform: translateX(100%); }
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
