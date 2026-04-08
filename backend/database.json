@@ -8,11 +8,12 @@
       "createdAt": "2026-04-08T05:41:29.873Z"
     },
     {
-      "id": 1775631113983,
-      "bookUid": "bk_1sRoWXY84Qqe",
-      "title": "이야기 2",
-      "description": "사용자 생성 이야기",
-      "createdAt": "2026-04-08T06:51:53.983Z"
+      "id": 1775638842185,
+      "bookUid": "bk_2ke9gNpMAnmt",
+      "title": "이야기",
+      "description": "야기",
+      "userId": "user_1",
+      "createdAt": "2026-04-08T09:00:42.185Z"
     }
   ],
   "pages": []

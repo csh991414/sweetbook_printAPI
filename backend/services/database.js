@@ -44,12 +44,13 @@ const dbHelper = {
     const data = await this._read();
     
     if (sql.startsWith('INSERT INTO books')) {
-      const [bookUid, title, description] = params;
+      const [bookUid, title, description, userId] = params;
       const newBook = {
         id: Date.now(),
         bookUid,
         title,
-        description,
+        description: description || '사용자 생성 이야기',
+        userId: userId || 'user_1',
         createdAt: new Date().toISOString()
       };
       data.books.push(newBook);

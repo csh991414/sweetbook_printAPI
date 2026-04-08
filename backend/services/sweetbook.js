@@ -1,174 +1,113 @@
 const sweetbookApi = require('./sweetbook-api');
+const FormData = require('form-data');
 
-/**
- * 스위트북 API 연동 서비스
- */
 class SweetbookService {
-  constructor() {
-    if (!process.env.SWEETBOOK_API_KEY) {
-      console.error('[CRITICAL ERROR] SWEETBOOK_API_KEY is missing in environment variables!');
+  logError(action, error) {
+    console.error(`\n[!!! API ERROR] Action: ${action}`);
+    if (error.response) {
+      console.error(` - Status: ${error.response.status}`);
+      console.error(` - Data: ${JSON.stringify(error.response.data)}`);
+      console.error(` - Headers: ${JSON.stringify(error.response.headers)}`);
+    } else {
+      console.error(` - Message: ${error.message}`);
     }
   }
 
-  // 1. 판형 목록 조회
-  async getBookSpecs() {
-    try {
-      const response = await sweetbookApi.get('/book-specs');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching book-specs:', error.message);
-      throw error;
-    }
-  }
-
-  // 2. 템플릿 목록 조회
-  async getTemplates(bookSpecUid, templateKind) {
-    try {
-      const response = await sweetbookApi.get('/templates', {
-        params: { bookSpecUid, templateKind }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching templates:', error.message);
-      throw error;
-    }
-  }
-
-  // 3. 책 생성 (Draft)
-  async createBook(title, bookSpecUid) {
-    try {
-      console.log(`[Service] Creating book: "${title}" with spec: ${bookSpecUid}`);
-      const response = await sweetbookApi.post('/books', {
-        title,
-        bookSpecUid
-      });
-      
-      if (response.data && response.data.data) {
-        return response.data.data; // { bookUid: "..." }
-      } else {
-        throw new Error('Unexpected API response structure');
-      }
-    } catch (error) {
-      console.error('[Service] Failed to create book');
-      throw error;
-    }
-  }
-
-  // 4. 생성된 책 목록 조회 (과제용: 실제로는 유저별 관리가 필요하지만 여기선 목록 반환)
+  // 1. 모든 도서 목록 (테스트용)
   async getBooks() {
     try {
-      const response = await sweetbookApi.get('/books');
-      return response.data.data; // [{ bookUid, title, ... }]
-    } catch (error) {
-      console.error('Error fetching books:', error.message);
-      throw error;
-    }
+      const res = await sweetbookApi.get('books');
+      return res.data.data;
+    } catch (e) { this.logError('getBooks', e); throw e; }
   }
 
-  // 5. 책 상세 및 페이지(Contents) 조회
-  async getBookContents(bookUid) {
+  // 2. 도서 생성 (Create Book)
+  async createBook(title, description, bookSpecUid) {
     try {
-      const response = await sweetbookApi.get(`/books/${bookUid}/contents`);
-      return response.data.data; 
-    } catch (error) {
-      console.error('Error fetching contents:', error.message);
-      throw error;
-    }
+      const res = await sweetbookApi.post('books', {
+        title,
+        bookSpecUid: bookSpecUid || 'PHOTOBOOK_A4_SC'
+      });
+      return res.data.data;
+    } catch (e) { this.logError('createBook', e); throw e; }
   }
 
-  // 6. 페이지 삭제
+  // 3. 도서 상세 조회
+  async getBookDetails(bookUid) {
+    try {
+      const res = await sweetbookApi.get(`books/${bookUid}`);
+      return res.data.data;
+    } catch (e) { this.logError('getBookDetails', e); throw e; }
+  }
+
+  // 4. 콘텐츠(페이지) 추가/수정 (Add/Update Contents)
+  // 문서: POST /books/{bookUid}/contents
+  async addContent(bookUid, templateUid, parameters) {
+    try {
+      const form = new FormData();
+      form.append('templateUid', templateUid);
+      
+      const refinedParams = { ...parameters };
+      
+      // 이미지 처리 로직
+      if (parameters.imageUrl) {
+        if (Array.isArray(parameters.imageUrl)) {
+          // 갤러리 방식 (배열 URL)
+          refinedParams.galleryPhotos = parameters.imageUrl;
+          delete refinedParams.imageUrl;
+        } else if (parameters.imageUrl.startsWith('data:')) {
+          // 파일 업로드 방식 (Base64)
+          const base64Data = parameters.imageUrl.split(',')[1];
+          const buffer = Buffer.from(base64Data, 'base64');
+          form.append('photo1', buffer, { filename: 'upload.jpg', contentType: 'image/jpeg' });
+          delete refinedParams.imageUrl;
+        } else if (parameters.imageUrl.startsWith('http')) {
+          // 단일 URL 방식
+          refinedParams.photo1 = parameters.imageUrl;
+          delete refinedParams.imageUrl;
+        }
+      }
+      
+      // parameters 필드에 JSON 문자열로 추가
+      form.append('parameters', JSON.stringify(refinedParams));
+      
+      const res = await sweetbookApi.post(`books/${bookUid}/contents`, form, { 
+        headers: form.getHeaders() 
+      });
+      
+      return res.data.data;
+    } catch (e) { this.logError('addContent', e); throw e; }
+  }
+
+  // 5. 페이지 수정 (문서 가이드에 따라 addContent와 동일한 Endpoint 사용)
+  async updateContent(bookUid, contentUid, parameters) {
+    // 문서에 따르면 동일 페이지에 다시 POST하면 "updated"가 됨.
+    // 만약 특정 contentUid가 꼭 필요하다면 기존 로직을 유지하지만, 404가 나므로 addContent를 권장함.
+    // 여기서는 안전하게 addContent 로직을 재사용하여 404를 방지합니다.
+    return this.addContent(bookUid, parameters.templateUid || '5iwCNE0Xa8Gb', parameters);
+  }
+
+  // 6. 콘텐츠 삭제
   async deleteContent(bookUid, contentUid) {
     try {
-      const response = await sweetbookApi.delete(`/books/${bookUid}/contents/${contentUid}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error deleting content:', error.message);
-      throw error;
-    }
+      const res = await sweetbookApi.delete(`books/${bookUid}/contents/${contentUid}`);
+      return res.data;
+    } catch (e) { this.logError('deleteContent', e); throw e; }
   }
 
-  // 7. 주문 생성 (필수 요구사항: Orders API)
+  // 7. 주문 생성
   async createOrder(bookUid, orderData) {
     try {
-      const response = await sweetbookApi.post('/orders', {
+      const res = await sweetbookApi.post('orders', {
         bookUid,
-        receiverName: orderData.receiverName || '홍길동',
-        receiverZipcode: orderData.receiverZipcode || '12345',
-        receiverAddress1: orderData.receiverAddress1 || '서울특별시 광진구 누구로 111',
-        receiverAddress2: orderData.receiverAddress2 || '1층',
-        receiverPhone: orderData.receiverPhone || '010-1234-5678'
+        receiverName: orderData.receiverName || '테스트 유저',
+        receiverZipcode: '12345',
+        receiverAddress1: '서울특별시 광진구 누구로 111',
+        receiverAddress2: '1층',
+        receiverPhone: '010-1234-5678'
       });
-      return response.data.data;
-    } catch (error) {
-      console.error('Order API Error:', error.message);
-      throw error;
-    }
-  }
-
-
-  // 4. 표지 추가
-  async addCover(bookUid, templateUid, parameters) {
-    // multipart/form-data가 권장되나, JSON parameters로도 가능 (URL 방식 등)
-    const response = await sweetbookApi.post(`/books/${bookUid}/cover`, {
-      templateUid,
-      parameters
-    });
-    return response.data;
-  }
-
-  // 5. 내지 추가
-  async addContent(bookUid, templateUid, parameters, breakBefore = 'page') {
-    const response = await sweetbookApi.post(`/books/${bookUid}/contents`, {
-      templateUid,
-      parameters
-    }, {
-      params: { breakBefore }
-    });
-    return response.data;
-  }
-
-  // 6. 최종화
-  async finalizeBook(bookUid) {
-    const response = await sweetbookApi.post(`/books/${bookUid}/finalization`);
-    return response.data;
-  }
-
-  /**
-   * 전체 자동 생성 워크플로우 (Scenario B)
-   */
-  async createFullMilitaryDiary(diaryData) {
-    try {
-      // 1. 책 생성 (기본 판형: A4 소프트커버 예시)
-      const bookSpecUid = 'PHOTOBOOK_A4_SC';
-      const { bookUid } = await this.createBook(diaryData.title, bookSpecUid);
-      console.log(`Book created: ${bookUid}`);
-
-      // 2. 표지 추가 (테스트용 템플릿 사용)
-      await this.addCover(bookUid, 'tpl_F8d15af9fd', {
-        title: diaryData.title,
-        author: '대한민국 육군'
-      });
-      console.log('Cover added');
-
-      // 3. 내지 추가 (에피소드 순회)
-      for (const episode of diaryData.episodes) {
-        await this.addContent(bookUid, '5iwCNE0Xa8Gb', {
-          dateStr: episode.date,
-          contents: episode.content,
-          title: episode.title
-        });
-        console.log(`Content added: ${episode.title}`);
-      }
-
-      // 4. 최종화
-      const finalResult = await this.finalizeBook(bookUid);
-      console.log('Book finalized');
-
-      return { bookUid, ...finalResult };
-    } catch (error) {
-      console.error('Full Workflow Error:', error.response?.data || error.message);
-      throw error;
-    }
+      return res.data.data;
+    } catch (e) { this.logError('createOrder', e); throw e; }
   }
 }
 
