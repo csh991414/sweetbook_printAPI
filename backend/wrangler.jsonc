@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sweetbook-backend",
+  "main": "server.js",
+  "compatibility_date": "2024-04-03",
+  "compatibility_flags": [ "nodejs_compat" ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sweetbook_db",
+      "database_id": "77777777-7777-7777-7777-777777777777" 
+    }
+  ],
+  "vars": {
+    "PORT": "4001"
+  }
+}
