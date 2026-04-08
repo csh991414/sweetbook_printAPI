@@ -1,43 +1,110 @@
-const axios = require('axios');
-require('dotenv').config();
-
-const BASE_URL = 'https://api-sandbox.sweetbook.com/v1';
-const API_KEY = process.env.SWEETBOOK_API_KEY;
-
-const sweetbookApi = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Authorization': `Bearer ${API_KEY}`,
-    'Content-Type': 'application/json'
-  }
-});
+const sweetbookApi = require('./sweetbook-api');
 
 /**
  * 스위트북 API 연동 서비스
  */
 class SweetbookService {
+  constructor() {
+    if (!process.env.SWEETBOOK_API_KEY) {
+      console.error('[CRITICAL ERROR] SWEETBOOK_API_KEY is missing in environment variables!');
+    }
+  }
+
   // 1. 판형 목록 조회
   async getBookSpecs() {
-    const response = await sweetbookApi.get('/book-specs');
-    return response.data;
+    try {
+      const response = await sweetbookApi.get('/book-specs');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching book-specs:', error.message);
+      throw error;
+    }
   }
 
   // 2. 템플릿 목록 조회
   async getTemplates(bookSpecUid, templateKind) {
-    const response = await sweetbookApi.get('/templates', {
-      params: { bookSpecUid, templateKind }
-    });
-    return response.data;
+    try {
+      const response = await sweetbookApi.get('/templates', {
+        params: { bookSpecUid, templateKind }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching templates:', error.message);
+      throw error;
+    }
   }
 
   // 3. 책 생성 (Draft)
   async createBook(title, bookSpecUid) {
-    const response = await sweetbookApi.post('/books', {
-      title,
-      bookSpecUid
-    });
-    return response.data.data; // { bookUid: "..." }
+    try {
+      console.log(`[Service] Creating book: "${title}" with spec: ${bookSpecUid}`);
+      const response = await sweetbookApi.post('/books', {
+        title,
+        bookSpecUid
+      });
+      
+      if (response.data && response.data.data) {
+        return response.data.data; // { bookUid: "..." }
+      } else {
+        throw new Error('Unexpected API response structure');
+      }
+    } catch (error) {
+      console.error('[Service] Failed to create book');
+      throw error;
+    }
   }
+
+  // 4. 생성된 책 목록 조회 (과제용: 실제로는 유저별 관리가 필요하지만 여기선 목록 반환)
+  async getBooks() {
+    try {
+      const response = await sweetbookApi.get('/books');
+      return response.data.data; // [{ bookUid, title, ... }]
+    } catch (error) {
+      console.error('Error fetching books:', error.message);
+      throw error;
+    }
+  }
+
+  // 5. 책 상세 및 페이지(Contents) 조회
+  async getBookContents(bookUid) {
+    try {
+      const response = await sweetbookApi.get(`/books/${bookUid}/contents`);
+      return response.data.data; 
+    } catch (error) {
+      console.error('Error fetching contents:', error.message);
+      throw error;
+    }
+  }
+
+  // 6. 페이지 삭제
+  async deleteContent(bookUid, contentUid) {
+    try {
+      const response = await sweetbookApi.delete(`/books/${bookUid}/contents/${contentUid}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting content:', error.message);
+      throw error;
+    }
+  }
+
+  // 7. 주문 생성 (필수 요구사항: Orders API)
+  async createOrder(bookUid, orderData) {
+    try {
+      const response = await sweetbookApi.post('/orders', {
+        bookUid,
+        receiverName: orderData.receiverName || '홍길동',
+        receiverZipcode: orderData.receiverZipcode || '12345',
+        receiverAddress1: orderData.receiverAddress1 || '서울특별시 광진구 누구로 111',
+        receiverAddress2: orderData.receiverAddress2 || '1층',
+        receiverPhone: orderData.receiverPhone || '010-1234-5678'
+      });
+      return response.data.data;
+    } catch (error) {
+      console.error('Order API Error:', error.message);
+      throw error;
+    }
+  }
+
 
   // 4. 표지 추가
   async addCover(bookUid, templateUid, parameters) {

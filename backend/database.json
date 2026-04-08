@@ -1,0 +1,19 @@
+{
+  "books": [
+    {
+      "id": 1775626889873,
+      "bookUid": "bk_2iARZ03dprhM",
+      "title": "이야기 1",
+      "description": "사용자 생성 이야기",
+      "createdAt": "2026-04-08T05:41:29.873Z"
+    },
+    {
+      "id": 1775631113983,
+      "bookUid": "bk_1sRoWXY84Qqe",
+      "title": "이야기 2",
+      "description": "사용자 생성 이야기",
+      "createdAt": "2026-04-08T06:51:53.983Z"
+    }
+  ],
+  "pages": []
+}

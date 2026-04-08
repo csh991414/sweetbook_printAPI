@@ -175,7 +175,7 @@ const prevPage = () => { if (currentPageIndex.value > 0) currentPageIndex.value-
 const createBook = async () => {
   isCreating.value = true;
   try {
-    const response = await fetch('http://localhost:4000/api/books/auto-generate', {
+    const response = await fetch('http://localhost:4001/api/books/auto-generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: coverTitle.value, episodes: episodes.value })

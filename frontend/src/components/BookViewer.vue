@@ -1,9 +1,9 @@
 <template>
-  <div class="relative flex items-center justify-center w-full max-w-screen-xl mx-auto px-12 h-[750px]">
-    <!-- Navigation Buttons -->
+  <div class="relative flex items-center justify-center w-full max-w-screen-xl mx-auto h-[750px]">
+    <!-- Navigation Buttons - Absolute to keep them fixed relative to the centered book -->
     <button 
       @click="$emit('prev')" 
-      class="flex-shrink-0 z-[200] p-4 rounded-full bg-white shadow-xl hover:bg-gray-50 hover:scale-110 transition-all disabled:opacity-0 disabled:pointer-events-none border border-gray-100"
+      class="absolute left-0 lg:left-4 z-[250] p-4 rounded-full bg-white shadow-xl hover:bg-gray-50 hover:scale-110 transition-all disabled:opacity-0 disabled:pointer-events-none border border-gray-100"
       :disabled="currentPage === 0"
     >
       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -13,7 +13,7 @@
     
     <!-- 3D Book Container -->
     <div 
-      class="book-container mx-16" 
+      class="book-container" 
       :class="{ 'is-open': currentPage > 0 && currentPage <= pages.length }"
     >
       <div 
@@ -25,7 +25,7 @@
           <div 
             class="page cover-front" 
             :class="{ 'flipped': currentPage > 0 }"
-            :style="{ zIndex: currentPage > 0 ? 0 : pages.length + 2 }"
+            :style="{ zIndex: currentPage > 0 ? 1 : pages.length + 5 }"
           >
             <div class="page-side front bg-[#FFB6C1]">
               <div class="spine-overlay"></div>
@@ -46,6 +46,7 @@
                 <p class="absolute bottom-10 left-0 right-0 text-[10px] font-bold tracking-widest opacity-50 uppercase italic">Created with AI Storyclass</p>
               </div>
             </div>
+            <!-- Task 1: Back side of front cover is the same cover color -->
             <div class="page-side back bg-[#FFB6C1]">
               <div class="spine-overlay-back"></div>
             </div>
@@ -54,18 +55,21 @@
           <!-- Content Pages -->
           <div 
             v-for="(page, index) in pages" 
-            :key="index"
+            :key="page.id"
             class="page"
-            :class="{ 'flipped': index + 1 <= currentPage }"
+            :class="{ 'flipped': index + 1 < currentPage }"
             :style="{ 
-              zIndex: index + 1 <= currentPage ? index + 1 : pages.length - index 
+              zIndex: index + 1 < currentPage ? index + 2 : pages.length - index + 1
             }"
           >
             <!-- Page Front (Content) -->
             <div class="page-side front bg-white">
               <div class="p-12 h-full flex flex-col">
                 <div class="mb-8">
-                  <span class="text-xs font-black text-pink-400 uppercase tracking-widest mb-1 block">{{ page.chapter }}</span>
+                  <div class="flex justify-between items-end mb-1">
+                     <span class="text-xs font-black text-pink-400 uppercase tracking-widest block">{{ page.chapter }}</span>
+                     <span class="text-[10px] font-bold text-gray-300">{{ page.date }}</span>
+                  </div>
                   <h2 class="text-3xl font-black text-gray-800 tracking-tight">{{ page.title }}</h2>
                 </div>
                 
@@ -74,13 +78,14 @@
                     <img :src="page.image" class="w-full h-full object-cover" />
                   </div>
                   <div class="flex-grow bg-gray-50/50 p-6 rounded-xl border border-gray-100/50">
-                    <p class="text-lg leading-relaxed text-gray-700 font-medium">{{ page.content }}</p>
+                    <p class="text-lg leading-relaxed text-gray-700 font-medium line-clamp-6">{{ page.content }}</p>
                   </div>
                 </div>    
                
               </div>
             </div>
             
+            <!-- Page Back (White) -->
             <div class="page-side back bg-white">
               <div class="spine-overlay-back"></div>
             </div>
@@ -90,7 +95,7 @@
           <div 
             class="page cover-back" 
             :class="{ 'flipped': currentPage > pages.length }"
-            :style="{ zIndex: currentPage > pages.length ? pages.length + 2 : 0 }"
+            :style="{ zIndex: currentPage > pages.length ? pages.length + 10 : 0 }"
           >
              <div class="page-side front bg-[#FFB6C1] flex items-center justify-center relative overflow-hidden">
                 <div class="spine-overlay"></div>
@@ -114,7 +119,7 @@
 
     <button 
       @click="$emit('next')" 
-      class="flex-shrink-0 z-[200] p-4 rounded-full bg-white shadow-xl hover:bg-gray-50 hover:scale-110 transition-all disabled:opacity-0 disabled:pointer-events-none border border-gray-100"
+      class="absolute right-0 lg:right-4 z-[250] p-4 rounded-full bg-white shadow-xl hover:bg-gray-50 hover:scale-110 transition-all disabled:opacity-0 disabled:pointer-events-none border border-gray-100"
       :disabled="currentPage > pages.length"
     >
       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
